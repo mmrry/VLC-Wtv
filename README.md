@@ -1,44 +1,46 @@
-# wtv.lua — W.tv playlist parser for VLC
+# wtv.lua — плагин W.tv для VLC
 
-A VLC playlist script that opens [W.tv](https://w.tv) live channels and recorded streams (VODs) directly in VLC.
+**Русский** | [English](README_wtv_ENG.md)
 
-W.tv streams through **Amazon IVS** (Interactive Video Service). The script resolves a W.tv page URL to the IVS HLS playback URL and hands it to VLC's `adaptive` demuxer.
+Скрипт плейлиста для VLC, который открывает прямые трансляции и записи (VOD) [W.tv](https://w.tv) прямо в VLC.
 
-## Features
+W.tv вещает через **Amazon IVS** (Interactive Video Service). Скрипт превращает ссылку на страницу W.tv в HLS-ссылку IVS и передаёт её демуксеру `adaptive` VLC.
 
-- Plays live channels and VODs anonymously. No login, cookies or tokens are needed.
-- Sends W.tv API requests through the system `curl` with browser-like headers. The API sits behind a WAF that returns `403` to VLC's own HTTP client.
-- Fills in VLC metadata: *Title*, *Artist* (channel), *Description*, *Date*, *Now Playing* and artwork (the stream thumbnail).
-- Prints clear errors to the VLC log for a missing channel, an offline stream, or an unknown video.
-- Starts on the source rendition right away (`adaptive-logic=highest`), so there is no ramp-up from 160p and no demuxer restart after the stream starts.
-- Runs on Windows, Linux and macOS.
+## Возможности
 
-## Supported URLs
+- Воспроизводит трансляции и VOD анонимно. Вход, куки и токены не нужны.
+- Отправляет запросы к API W.tv через системный `curl` с заголовками как у браузера. API стоит за WAF, который отвечает `403` встроенному HTTP-клиенту VLC.
+- Заполняет метаданные VLC: *Название*, *Исполнитель* (канал), *Описание*, *Дата*, *Сейчас играет* и обложку (превью трансляции).
+- Пишет понятные ошибки в журнал VLC, если канал не найден, трансляция не идёт или видео не найдено.
+- Сразу стартует на исходном качестве (`adaptive-logic=highest`), без разгона с 160p и без перезапуска демуксера после старта.
+- Работает на Windows, Linux и macOS.
 
-| URL | Result |
+## Поддерживаемые ссылки
+
+| Ссылка | Что открывается |
 |---|---|
-| `https://w.tv/<nickname>` | Live stream |
-| `https://w.tv/<nickname>/videos/<streamId>` | Recorded stream (VOD) |
+| `https://w.tv/<ник>` | Трансляция |
+| `https://w.tv/<ник>/videos/<streamId>` | Запись трансляции (VOD) |
 
-Nicknames are case-insensitive.
+Регистр ника не важен.
 
-## Requirements
+## Требования
 
 - VLC 3.0.x.
-- `curl` available on `PATH`.
+- `curl` в `PATH`.
 
-| OS | curl |
+| ОС | curl |
 |---|---|
-| Windows 10 1803+ / 11 | Built in (`C:\Windows\System32\curl.exe`) |
-| macOS | Built in (`/usr/bin/curl`) |
-| Linux | Usually preinstalled. If missing, run `sudo apt install curl` or the equivalent for your distro |
-| Linux (Flatpak / Snap) | VLC uses the curl from its sandbox runtime, which may not include one |
+| Windows 10 1803+ / 11 | Встроен (`C:\Windows\System32\curl.exe`) |
+| macOS | Встроен (`/usr/bin/curl`) |
+| Linux | Обычно уже установлен. Если нет — `sudo apt install curl` или аналог для вашего дистрибутива |
+| Linux (Flatpak / Snap) | VLC использует curl из своей песочницы, а там его может не быть |
 
-## Installation
+## Установка
 
-Copy `wtv.lua` into your user playlist-scripts directory, creating the directory if needed:
+Скопируйте `wtv.lua` в пользовательскую папку скриптов плейлиста, создав её при необходимости:
 
-| OS | Path |
+| ОС | Путь |
 |---|---|
 | Windows | `%APPDATA%\vlc\lua\playlist\` |
 | Linux | `~/.local/share/vlc/lua/playlist/` |
@@ -46,18 +48,18 @@ Copy `wtv.lua` into your user playlist-scripts directory, creating the directory
 | Linux (Snap) | `~/snap/vlc/current/.local/share/vlc/lua/playlist/` |
 | macOS | `~/Library/Application Support/org.videolan.vlc/lua/playlist/` |
 
-Restart VLC after installing.
+После установки перезапустите VLC.
 
-## Usage
+## Использование
 
-- **GUI:** open *Media → Open Network Stream* (`Ctrl+N`) and paste a channel or video URL.
-- **CLI:**
+- **Интерфейс:** *Медиа → Открыть URL* (`Ctrl+N`), вставьте ссылку на канал или видео.
+- **Командная строка:**
   ```sh
-  vlc https://w.tv/<nickname>
-  vlc https://w.tv/<nickname>/videos/<streamId>
+  vlc https://w.tv/<ник>
+  vlc https://w.tv/<ник>/videos/<streamId>
   ```
 
-## How it works
+## Как это работает
 
 ```
 w.tv/<nick>
@@ -70,29 +72,29 @@ w.tv/<nick>
                    https://streams.w.tv/ivs/v1/<acc>/<channel>/<yyyy>/<m>/<d>/<h>/<min>/<rec>/media/hls/master.m3u8
 ```
 
-Each API call runs `curl` with a browser `User-Agent`, `Origin: https://w.tv`, `Referer: https://w.tv/` and a random `x-device-id`, the same headers the web client sends. The IVS playlists and segments themselves are fetched by VLC directly.
+Каждый запрос к API выполняется через `curl` с браузерным `User-Agent`, `Origin: https://w.tv`, `Referer: https://w.tv/` и случайным `x-device-id` — те же заголовки, что шлёт веб-клиент. Плейлисты и сегменты IVS VLC загружает сам.
 
-Live streams play from the IVS edge (`*.playback.live-video.net`). VODs are IVS auto-recordings in S3, served through `streams.w.tv`.
+Трансляции идут с edge-серверов IVS (`*.playback.live-video.net`). VOD — это автозаписи IVS в S3, которые раздаются через `streams.w.tv`.
 
-## IVS renditions
+## Варианты качества IVS
 
-This is the master playlist for a typical live channel. The values come from a captured session:
+Мастер-плейлист типичного канала. Значения взяты из записанной сессии:
 
-| Rendition | Resolution | Bitrate | Codec |
+| Вариант | Разрешение | Битрейт | Кодек |
 |---|---|---|---|
-| `chunked` (source) | 1920×1080 @ 60 | ~6.9 Mbit/s | H.264 High + AAC |
-| `720p60` | 1280×720 @ 60 | ~3.4 Mbit/s | H.264 Main + AAC |
-| `480p30` | 852×480 @ 30 | ~1.4 Mbit/s | H.264 Main + AAC |
-| `360p30` | 640×360 @ 30 | ~0.6 Mbit/s | H.264 Main + AAC |
-| `160p30` | 284×160 @ 30 | ~0.2 Mbit/s | H.264 Main + AAC |
+| `chunked` (исходник) | 1920×1080 @ 60 | ~6,9 Мбит/с | H.264 High + AAC |
+| `720p60` | 1280×720 @ 60 | ~3,4 Мбит/с | H.264 Main + AAC |
+| `480p30` | 852×480 @ 30 | ~1,4 Мбит/с | H.264 Main + AAC |
+| `360p30` | 640×360 @ 30 | ~0,6 Мбит/с | H.264 Main + AAC |
+| `160p30` | 284×160 @ 30 | ~0,2 Мбит/с | H.264 Main + AAC |
 
-- Segments are 2 s long, and `EXT-X-TARGETDURATION` is 6.
-- There is no audio-only rendition.
-- The rendition list depends on the streamer's IVS channel type. Channels without transcoding expose the source rendition only.
+- Сегменты длиной 2 с, `EXT-X-TARGETDURATION` равен 6.
+- Варианта только со звуком нет.
+- Набор вариантов зависит от типа IVS-канала стримера. Каналы без транскодирования отдают только исходник.
 
-## Configuration
+## Настройка
 
-Playback options are set in the `OPTIONS` table at the top of the script:
+Параметры воспроизведения задаются в таблице `OPTIONS` в начале скрипта:
 
 ```lua
 local OPTIONS = {
@@ -101,59 +103,59 @@ local OPTIONS = {
 }
 ```
 
-### VLC options
+### Параметры VLC
 
-| Option | Values | Purpose |
+| Параметр | Значения | Назначение |
 |---|---|---|
-| `:adaptive-logic=` | `highest` (default), `nearoptimal`, `predictive`, `rate`, `fixedrate`, `lowest` | Rendition selection strategy |
-| `:adaptive-maxheight=` | e.g. `720` | Height cap. Combine it with `highest` to get the best rendition up to that height |
-| `:adaptive-maxwidth=` | e.g. `1280` | Width cap |
-| `:adaptive-bw=` | kbit/s | Fixed bandwidth for `fixedrate` |
-| `:adaptive-livedelay=` | ms (default `15000`) | Distance from the live edge. Do not go below about `12000`: IVS uses `EXT-X-TARGETDURATION:6`, VLC 3 refreshes the live playlist only every 6 s, and a shorter delay drains the buffer, causing freezes and `PCR is called too late`. Has no effect on VODs |
-| `:adaptive-maxbuffer=` | ms (default `30000`) | Maximum buffer size |
-| `:http-referrer=` | `https://w.tv/` (default) | Sends the same `Referer` as the web player. This matters if the channel has an IVS playback restriction policy |
+| `:adaptive-logic=` | `highest` (по умолчанию), `nearoptimal`, `predictive`, `rate`, `fixedrate`, `lowest` | Стратегия выбора качества |
+| `:adaptive-maxheight=` | например `720` | Ограничение по высоте. Вместе с `highest` даёт лучший вариант не выше этой высоты |
+| `:adaptive-maxwidth=` | например `1280` | Ограничение по ширине |
+| `:adaptive-bw=` | кбит/с | Фиксированная полоса для `fixedrate` |
+| `:adaptive-livedelay=` | мс (по умолчанию `15000`) | Отставание от края трансляции. Не ставьте меньше примерно `12000`: IVS задаёт `EXT-X-TARGETDURATION:6`, VLC 3 обновляет live-плейлист только раз в 6 с, и при меньшей задержке буфер опустошается — появляются фризы и `PCR is called too late`. На VOD не влияет |
+| `:adaptive-maxbuffer=` | мс (по умолчанию `30000`) | Максимальный размер буфера |
+| `:http-referrer=` | `https://w.tv/` (по умолчанию) | Отправляет тот же `Referer`, что и веб-плеер. Важно, если у канала включена IVS playback restriction policy |
 
-These options apply only to items this script creates. Global VLC settings are not changed.
+Эти параметры действуют только на элементы, созданные скриптом. Глобальные настройки VLC не меняются.
 
-### IVS playback URL parameters
+### Параметры URL воспроизведения IVS
 
-The W.tv web player appends these query parameters to `playbackUrl`:
+Веб-плеер W.tv добавляет к `playbackUrl` такие параметры:
 
-| Parameter | Example | Effect |
+| Параметр | Пример | Влияние |
 |---|---|---|
-| `supported_codecs` | `av1,h265,h264` | Lets IVS offer HEVC or AV1 renditions (multi-codec / enhanced broadcasting) |
-| `player_backend` | `mediaplayer` | Telemetry |
-| `player_version` | `1.53.0` | Telemetry |
-| `platform` | `web` | Telemetry |
-| `browser_family`, `browser_version` | `chrome`, `153.0` | Telemetry |
-| `os_name`, `os_version` | `Windows`, `NT 10.0` | Telemetry |
-| `cdm` | `wv` | DRM capability hint (Widevine). Not used for public streams |
-| `token` | JWT | IVS playback authorization for private channels. Public W.tv channels do not use it |
+| `supported_codecs` | `av1,h265,h264` | Позволяет IVS отдавать варианты в HEVC или AV1 (multi-codec / enhanced broadcasting) |
+| `player_backend` | `mediaplayer` | Телеметрия |
+| `player_version` | `1.53.0` | Телеметрия |
+| `platform` | `web` | Телеметрия |
+| `browser_family`, `browser_version` | `chrome`, `153.0` | Телеметрия |
+| `os_name`, `os_version` | `Windows`, `NT 10.0` | Телеметрия |
+| `cdm` | `wv` | Признак поддержки DRM (Widevine). Для публичных трансляций не используется |
+| `token` | JWT | Авторизация воспроизведения IVS для приватных каналов. Публичные каналы W.tv его не используют |
 
-The script sends none of these parameters, so playback stays on the widely compatible H.264 renditions. To experiment with HEVC or AV1, append `?supported_codecs=h265,h264` to `stream.playbackUrl` in `make_item()`.
+Скрипт не передаёт ни один из этих параметров, поэтому воспроизводятся совместимые варианты H.264. Чтобы поэкспериментировать с HEVC или AV1, допишите `?supported_codecs=h265,h264` к `stream.playbackUrl` в `make_item()`.
 
-## Troubleshooting
+## Диагностика
 
-Open *Tools → Messages* in VLC, or run `vlc -vv`, and look for lines starting with `W.tv:`.
+Откройте *Инструменты → Сообщения* в VLC или запустите `vlc -vv` и найдите строки, начинающиеся с `W.tv:`.
 
-| Log message | Meaning / fix |
+| Сообщение в журнале | Что значит / что делать |
 |---|---|
-| `channel not found: <nick>` | The nickname is misspelled, or the profile does not exist |
-| `<name> is offline` | The channel is not live right now |
-| `video not found: <id>` | The video is not in the channel's recent streams list. See the limitations below |
-| `video <id> has no recording` | The stream exists, but no recording is available |
-| `curl: (22) The requested URL returned error: 403 [<url>]` | The WAF rejected the request. W.tv may have tightened its bot rules. Please report this and attach the log |
-| `curl: not found` / `empty response (is curl installed?)` | `curl` is not on `PATH`. Install it |
-| `curl: (28) ...` | Timeout. Check your network |
+| `channel not found: <nick>` | Ник написан с ошибкой или профиль не существует |
+| `<name> is offline` | Канал сейчас не ведёт трансляцию |
+| `video not found: <id>` | Видео нет в списке последних трансляций канала. См. ограничения ниже |
+| `video <id> has no recording` | Трансляция есть, но записи нет |
+| `curl: (22) The requested URL returned error: 403 [<url>]` | WAF отклонил запрос. Возможно, W.tv ужесточил защиту от ботов — сообщите об этом и приложите журнал |
+| `curl: not found` / `empty response (is curl installed?)` | `curl` нет в `PATH`. Установите его |
+| `curl: (28) ...` | Тайм-аут. Проверьте сеть |
 
-## Known limitations
+## Известные ограничения
 
-- **WAF on the API.** The W.tv API returns `403` to VLC's built-in HTTP client, which is why the script goes through `curl`. If W.tv enables stricter bot detection (for example TLS fingerprinting), `curl` may be blocked as well.
-- **Console flash on Windows.** `io.popen` starts `cmd.exe`, so a console window flashes briefly for each API call (two per open).
-- **AWS WAF on the page.** The first request to the `w.tv/<nick>` page may return `202` with a WAF challenge. VLC accepts any 2xx response, so this does not affect the script. The API subdomains had no challenge in the captured session.
-- **Recent VODs only.** VOD lookup uses the channel's streams list, which covered about one month (29 entries) in the captured session. Links to older recordings may not resolve.
-- **No chat.** The script handles video only. W.tv chat runs over IVS Chat WebSocket, which is outside the scope of a playlist script.
+- **WAF на API.** API W.tv отвечает `403` встроенному HTTP-клиенту VLC, поэтому скрипт работает через `curl`. Если W.tv включит более строгую защиту от ботов (например, по отпечатку TLS), `curl` тоже могут заблокировать.
+- **Мелькание консоли на Windows.** `io.popen` запускает `cmd.exe`, поэтому на каждый запрос к API (два на открытие) на мгновение появляется окно консоли.
+- **AWS WAF на странице.** Первый запрос к странице `w.tv/<ник>` может вернуть `202` с WAF-проверкой. VLC принимает любой ответ 2xx, так что на работу скрипта это не влияет. На поддоменах API в записанной сессии проверки не было.
+- **Только недавние VOD.** Поиск VOD идёт по списку трансляций канала, который в записанной сессии охватывал около месяца (29 записей). Ссылки на более старые записи могут не открыться.
+- **Без чата.** Скрипт работает только с видео. Чат W.tv работает через WebSocket IVS Chat, а это за рамками скрипта плейлиста.
 
-## License
+## Лицензия
 
-GNU General Public License v2.0 or later.
+GNU General Public License v2.0 или новее.
